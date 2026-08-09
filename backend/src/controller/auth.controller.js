@@ -1,22 +1,23 @@
 const userModel = require('../models/user.model')
 const jwt = require('jsonwebtoken')
 
-async function registerController (req,res){
+async function RegisterController(req,res){
 
     const {username,email,password,bio,profileImage} = req.body
 
-    console.log(username,email,password,bio)
-
     const isUserExtist = await userModel.findOne({
         $or:[
-            {email},{username}
+            {username},
+            {email}
         ]
     })
 
+
+
     if(isUserExtist){
         return res.status(409).json({
-            message : 'user already extist' + (isUserExtist.email == email?
-                'email already extist':'username already extist')
+            message : 'user already extist'+(isUserExtist.username == username?
+            ' with a username ':' with a email ')
         })
     }
 
@@ -28,21 +29,19 @@ async function registerController (req,res){
         profileImage
     })
 
-    const token = jwt.sign({id:user._id},process.env.JWT_SECRET)
+    const token = jwt.sign({id:user._id},process.env.JWT_SECRECT)
 
     res.cookie("token",token)
 
     res.status(201).json({
         message : 'user created successfully',
         user:{
-            id:user._id,
             username:user.username,
             email:user.email,
             bio:user.bio,
             profileImage:user.profileImage
         }
     })
-
 
 }
 
@@ -63,29 +62,25 @@ async function loginController(req,res){
         })
     }
 
-    const isPasswordValid = password == user.password
+    const isPassValid = user.password == password
 
-    if(!isPasswordValid){
+    if(!isPassValid){
         return res.status(401).json({
             message : 'password Invalid'
         })
     }
 
-    const token = jwt.sign({id:user._id},process.env.JWT_SECRET)
+    const token = jwt.sign({id:user._id},process.env.JWT_SECRECT)
 
     res.cookie("token",token)
 
     res.status(200).json({
-        message : 'user login successfully',
-         user:{
-            id:user._id,
-            username:user.username,
-            email:user.email,
-        }
+        message : 'user login'
     })
+
 }
 
-module.exports ={
-    registerController,
+module.exports = {
+    RegisterController,
     loginController
 }
