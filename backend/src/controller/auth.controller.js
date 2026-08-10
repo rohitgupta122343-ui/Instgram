@@ -1,4 +1,5 @@
 const userModel = require('../models/user.model')
+const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 
 async function RegisterController(req,res){
@@ -21,10 +22,12 @@ async function RegisterController(req,res){
         })
     }
 
+    const hash =  await bcrypt.hash(password,10)
+
     const user = await userModel.create({
         username,
         email,
-        password,
+        password:hash,
         bio,
         profileImage
     })
@@ -62,7 +65,7 @@ async function loginController(req,res){
         })
     }
 
-    const isPassValid = user.password == password
+    const isPassValid = await bcrypt.compare(password,user.password)
 
     if(!isPassValid){
         return res.status(401).json({
