@@ -1,10 +1,11 @@
 const userModel = require('../models/user.model')
-const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt')
 
-async function RegisterController(req,res){
+async function registerController(req,res){
 
-    const {username,email,password,bio,profileImage} = req.body
+
+    const {username,email,password,bio,profileImg} = req.body
 
     const isUserExtist = await userModel.findOne({
         $or:[
@@ -13,42 +14,37 @@ async function RegisterController(req,res){
         ]
     })
 
-
-
     if(isUserExtist){
-        return res.status(409).json({
-            message : 'user already extist'+(isUserExtist.username == username?
-            ' with a username ':' with a email ')
+        return res.status(401).json({
+            message : 'user already register'
         })
     }
 
-    const hash =  await bcrypt.hash(password,10)
+    const hashPass = await bcrypt.hash(password,10)
 
     const user = await userModel.create({
-        username,
-        email,
-        password:hash,
-        bio,
-        profileImage
+        username,email,bio,profileImg,password:hashPass
     })
 
     const token = jwt.sign({id:user._id},process.env.JWT_SECRECT)
 
-    res.cookie("token",token)
+    res.cookie('token',token)
 
     res.status(201).json({
         message : 'user created successfully',
         user:{
-            username:user.username,
+            id : user._id,
             email:user.email,
             bio:user.bio,
-            profileImage:user.profileImage
+            profileImg:user.profileImg
         }
     })
+
 
 }
 
 async function loginController(req,res){
+   
 
     const {username,email,password} = req.body
 
@@ -68,22 +64,56 @@ async function loginController(req,res){
     const isPassValid = await bcrypt.compare(password,user.password)
 
     if(!isPassValid){
-        return res.status(401).json({
-            message : 'password Invalid'
+        return res.status(409).json({
+            message : 'Invalid Password'
         })
     }
 
     const token = jwt.sign({id:user._id},process.env.JWT_SECRECT)
 
-    res.cookie("token",token)
+    res.cookie('token',token)
 
     res.status(200).json({
-        message : 'user login'
+        message : 'user Login',
+        user : {
+            id: user._id,
+            username : user.username,
+            email : user.email
+        }
     })
+
+
+}
+
+async function getMeController(req,res){
+
+   try{ const token = req.cookies.token
+
+    if(!token){
+        return res.status(401).json({
+            message : 'unauthorized user'
+        })
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRECT)
+
+
+   const user = await  userModel.findById(decoded.id)
+
+   res.status(200).json({
+    message : 'user fetch successfully',
+    user
+   })
+}catch (err){
+    return res.status(401).json({
+            message: "Invalid or expired token"
+        });
+}
 
 }
 
 module.exports = {
-    RegisterController,
-    loginController
+    registerController,
+    loginController,
+    getMeController
 }
