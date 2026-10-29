@@ -5,20 +5,18 @@ const postSchema = new mongoose.Schema({
 
     caption:{
         type:String,
-        default:''
+        default:""
     },
     imgUri:{
         type:String,
-        required:[true,'Image Uri is required creating Post']
+        required:[true,'imgUrl is required']
     },
     user:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:'users',
-        required:[true,'userId is required to creating post']
+        ref:'users'
     }
-    
 })
 
 const postModel = mongoose.model('posts',postSchema)
-module.exports = postModel
 
+module.exports = postModel

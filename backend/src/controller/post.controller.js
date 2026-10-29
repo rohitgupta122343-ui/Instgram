@@ -1,56 +1,80 @@
 
-const ImageKit =  require('@imagekit/nodejs')
-const { toFile } = require('@imagekit/nodejs')
-const postModel = require('../models/post.model')
+const postModel = require('../model/post.model')
+const ImageKit = require('@imagekit/nodejs')
+const {toFile} = require('@imagekit/nodejs')
 const jwt = require('jsonwebtoken')
 
 const imagekit = new ImageKit({
-    privateKey : process.env.IMAGEKIT_PRIVATE_KEY
+    privateKey:process.env.IMAGEKIT_PRIVATE_KEY
 })
 
 async function createPostController(req,res){
+    
 
-    const token = req.cookies.token
+     const file = await imagekit.files.upload({
+        file: await toFile(Buffer.from(req.file.buffer), 'file'),
+   fileName: 'fileName',
+   floderPath: 'Instagram/posts'
+     })
 
-    if(!token){
-        return res.status(401).json({
-            message : 'Token Not Provided, Unauthorized access'
-        })
-    }
-    let decoded
-    try{
-         decoded = jwt.verify(token,process.env.JWT_SECRECT)
-    }catch(err){
-        return res.status(401).json({
-            message : 'user not authorized'
-        })
-    }
-
-  
-
-    const {caption,imgUri} = req.body
-
-    console.log(caption,req.file)
-
-   const file =  await imagekit.files.upload({
-  file: await toFile(req.file.buffer, 'file'),
-  fileName: 'test',
-  folder: '/Instagram/posts'
-});
-     
-    const post = await postModel.create({
+     const post = await postModel.create({
         caption:req.body.caption,
         imgUri:file.url,
-        user:decoded.id
+        user:req.user.id
+     })
+
+
+     res.status(201).json({
+        message : "post created sucessfully",
+        post
+     })
+
+}
+
+async function getPostController(req,res){
+
+
+   
+    const posts = await postModel.find({
+        user:req.user.id
     })
 
-    res.status(201).json({
-        message : 'post created successfully',
-        post
+    res.status(200).json({
+        message : "post fetch sucessfully",
+        posts
     })
 
 }
 
+async function getPostDetailsController(req,res){
+    
+
+    
+
+    const userId = req.user.id
+    const postId = req.params.postId
+
+    const post = await postModel.findById(postId)
+
+    const isValidUser = post.user.toString() === userId
+
+    if(!isValidUser){
+        return res.status(403).json({
+            message : "forbidden content."
+        })
+    }
+
+    res.status(200).json({
+        message : "post fetch sucessfully",
+        post
+    })
+
+
+}
+
+
 module.exports = {
-    createPostController
+    createPostController,
+    getPostController,
+    getPostDetailsController
 }
